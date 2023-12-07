@@ -1,0 +1,397 @@
+﻿<h3>CommandList</h3>
+
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Forms
+@using WebProject.Database
+@using WebProject.Services
+@inject CommandsService commandsService
+@inject AliasesService aliasesService
+@inject PagerService pagerservice
+
+<div class="CommandsTable">
+	<div class="Pager">
+		<div class="PagerButtons">
+			<div class="DisplayButtons">
+				Display
+				<select value="25">
+					<option value="10" @onclick="(e => pagerservice.SetPageSize(pager, 10))">10 </option>
+					<option value="25" @onclick="(e => pagerservice.SetPageSize(pager, 25))">25 </option>
+					<option value="50" @onclick="(e => pagerservice.SetPageSize(pager, 50))">50 </option>
+					<option value="99" @onclick="(e => pagerservice.SetPageSize(pager, 99))">99 </option>
+				</select>
+				Entries
+			</div>
+			<div class="PageButtons">
+				<button @onclick="(e => pagerservice.ChangePage(pager, -1))" class="btn btn-primary">&lt;</button>
+				@pager.CurrentPage
+				<button @onclick="(e => pagerservice.ChangePage(pager, 1))" class="btn btn-primary">&gt;</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="Row HeaderCommand">
+		<div class="Cell CmdNames">
+			<div class="Data">
+				<b>Command Name</b>
+			</div>
+		</div>
+		<div class="Cell Response">
+			<div class="Data">
+				<b>Command Response</b>
+			</div>
+		</div>
+		<div class="Cell CommandButtons">
+			<div class="Data">
+				<button @onclick="(e => CreateButtonPressed())" data-bs-toggle="modal" data-bs-target="#createModal" class="CreateButton btn btn-success">+</button>
+			</div>
+		</div>
+	</div>
+	@{
+		InitAliases();
+		foreach (var Command in commandsService.GetXCommands(channel, pager.PageSize, pager.CurrentPage))
+		{
+			<div class="EntryContainer">
+				<div class="CommandEntry">
+					<div class="Row Command">
+						<div class="Cell CmdNames">
+							<div class="Cell AliasToggle">
+								<div class="Data">
+									<button @onclick="(e => AliasButtonPressed(Command.Id))" class="btn btn-secondary">v</button>
+								</div>
+							</div>
+							<div class="Cell Name">
+								<div class="Data">
+									@Command.CommandName
+								</div>
+							</div>
+						</div>
+						<div class="Cell Response">
+							<div class="Data">
+								@Command.Response
+							</div>
+						</div>
+						<div class="Cell CommandButtons">
+							<div class="Data">
+								<button @onclick="(e => EditButtonPressed(Command.Id))" data-bs-toggle="modal" data-bs-target="#editModal" class="EditButton btn btn-secondary">...</button>
+								<button @onclick="(e => DeleteButtonPressed(Command.Id))" data-bs-toggle="modal" data-bs-target="#deleteModal" class="DeleteButton btn btn-danger">-</button>
+							</div>
+						</div>
+					</div>
+					<div hidden="@Toggle[Command.Id]" class="AliasesTable">
+						<div class="Row HeaderAlias">
+							<div class="Cell AliasName">
+								<div class="Data">
+									<b>Aliases</b>
+								</div>
+							</div>
+							<div class="Cell AliasButtons">
+								<div class="Data">
+									<button @onclick="(e => CreateAliasPressed())" data-bs-toggle="modal" data-bs-target="#aliasModal" class="CreateButton btn btn-success">+</button>
+								</div>
+							</div>
+						</div>
+						@foreach (var Alias in aliasesService.GetAliases(channel, Command.Id))
+						{
+							<div class="Row Alias">
+								<div class="Cell AliasName">
+									<div class="Data">
+										@Alias.Alias
+									</div>
+								</div>
+								<div class="Cell AliasButtons">
+									<div class="Data">
+										<button @onclick="(e => DeleteAliasPressed(Alias.Id))" class=" DeleteButton btn btn-danger">-</button>
+									</div>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+		}
+	}
+	<div class="PageButtons">
+	</div>
+</div>
+
+<div class="modal fade" id="createModal" tabindex="-1" role="dialog" aria-labelledby="productTitle" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="productTitle">Create a new command</h5>
+				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="Form">
+					<EditForm Model="@commandModel" OnSubmit="@AddCommandConfirmed">
+						<div class="input">
+							Command Name:	<br />
+							<InputText style="width: 60%;" @bind-Value="commandModel.CommandName" />
+						</div>
+						<div class="input">
+							Response: <br />
+							<InputTextArea style="width: 80%; min-height: 150px;" @bind-Value="commandModel.Response" />
+						</div>
+						<div class="input" style="display: inline-flex;">
+							<div class="input" style="padding-right: 2px;">
+								Cooldown: <br />
+								<InputNumber placeholder="3" @bind-Value="commandModel.Cooldown" />
+							</div>
+							<div class="input" style="padding-left: 2px;">
+								Active for: <br />
+								<InputText @bind-Value="commandModel.GameSpecific" />
+							</div>
+						</div>
+						<div class="input" style="display: inline-flex;">
+							<div class="input" style="padding-right: 2px;">
+								Access Level: <br />
+								<select value="@commandModel.AccessLevel" @onchange="(e => commandModel.AccessLevel = Convert.ToInt32(e.Value.ToString()))">
+									<option value="6"> Broadcaster </option>
+									<option value="5"> Moderator </option>
+									<option value="4"> Trusted </option>
+									<option value="3"> VIP </option>
+									<option value="2"> User </option>
+								</select>
+							</div>
+							<div class="input" style="padding-left: 2px;">
+								Edit Level: <br />
+								<select value="@commandModel.EditLevel" @onchange="(e => commandModel.EditLevel = Convert.ToInt32(e.Value.ToString()))">
+									<option value="6"> Broadcaster </option>
+									<option value="5"> Moderator </option>
+									<option value="4"> Trusted </option>
+									<option value="3"> VIP </option>
+									<option value="2"> User </option>
+								</select>
+							</div>
+						</div>
+						<div>
+							<button type="submit" data-bs-dismiss="modal">Submit</button>
+						</div>
+					</EditForm>
+				</div>
+			</div>
+			<div class="modal-footer">
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="productTitle" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="productTitle">Delete @commandModel?.CommandName</h5>
+			</div>
+			<div class="modal-body">
+				<button @onclick="(e => DeleteCommandConfirmed(commandModel.Id))" class="btn btn-danger" data-bs-dismiss="modal">Delete</button>
+				<button class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+			</div>
+			<div class="modal-footer">
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="productTitle" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="productTitle">Edit @commandModel?.CommandName</h5>
+				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="Form">
+					<EditForm Model="@commandModel" OnSubmit="@EditCommandConfirmed">
+						<div class="input">
+							Command Name:	<br />
+							<InputText style="width: 60%;" @bind-Value="commandModel.CommandName" />
+						</div>
+						<div class="input">
+							Response: <br />
+							<InputTextArea style="width: 80%; min-height: 150px;" @bind-Value="commandModel.Response" @onchange="(e => commandModel.Response.TrimEnd('\r', '\n'))" />
+						</div>
+						<div class="input" style="display: inline-flex;">
+							<div class="input" style="padding-right: 2px;">
+								Cooldown: <br />
+								<InputNumber placeholder="3" @bind-Value="commandModel.Cooldown" />
+							</div>
+							<div class="input" style="padding-left: 2px;">
+								Active for: <br />
+								<InputText @bind-Value="commandModel.GameSpecific" />
+							</div>
+						</div>
+						<div class="input" style="display: inline-flex;">
+							<div class="input" style="padding-right: 2px;">
+								Access Level: <br />
+								<select value="@commandModel.AccessLevel" @onchange="(e => commandModel.AccessLevel = Convert.ToInt32(e.Value.ToString()))">
+									<option value="6"> Broadcaster </option>
+									<option value=" 5"> Moderator </option>
+									<option value="4"> Trusted </option>
+									<option value="3"> VIP </option>
+									<option value="2"> User </option>
+								</select>
+							</div>
+							<div class="input" style="padding-left: 2px;">
+								Edit Level: <br />
+								<select value="@commandModel.EditLevel" @onchange="(e => commandModel.EditLevel = Convert.ToInt32(e.Value.ToString()))">
+									<option value="6"> Broadcaster </option>
+									<option value="5"> Moderator </option>
+									<option value="4"> Trusted </option>
+									<option value="3"> VIP </option>
+									<option value="2"> User </option>
+								</select>
+							</div>
+						</div>
+						<div>
+							<button type="submit" data-bs-dismiss="modal">Submit</button>
+						</div>
+					</EditForm>
+				</div>
+			</div>
+			<div class="modal-footer">
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="aliasModal" tabindex="-1" role="dialog" aria-labelledby="productTitle" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="productTitle">Create a new alias</h5>
+				<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="Form">
+					<EditForm Model="@aliasModel" OnSubmit="@CreateAliasConfirmed">
+						<div>
+							Alias Name: <br />
+							<InputText @bind-Value="aliasModel.Alias" />
+						</div>
+						<div>
+							<button type="submit" data-bs-dismiss="modal">Submit</button>
+						</div>
+					</EditForm>
+				</div>
+			</div>
+			<div class="modal-footer">
+			</div>
+		</div>
+	</div>
+</div>
+
+@code {
+	public string channel = "pyrzybot";
+
+	public PagerService pager;
+
+	public ChannelCommands commandModel { get; set; }
+
+	public Aliases aliasModel { get; set; }
+	public int LastAliasToggled = 0;
+
+	Dictionary<int, bool> Toggle = new Dictionary<int, bool> { };
+
+	protected override void OnInitialized()
+	{
+		commandModel ??= new();
+		aliasModel ??= new();
+		pager = new PagerService(25, commandsService.GetCommandsCount(channel));
+	}
+
+	private void InitAliases()
+	{
+		foreach (var Command in commandsService.GetXCommands(channel, pager.PageSize, pager.CurrentPage))
+			if (!Toggle.ContainsKey(Command.Id))
+				Toggle.Add(Command.Id, true);
+	}
+	private void ToggleAlias(int Id)
+	{
+		if (Toggle.ContainsKey(Id))
+		{
+			Toggle[Id] = !Toggle[Id];
+			if (LastAliasToggled != 0 && LastAliasToggled != Id)
+				Toggle[LastAliasToggled] = true;
+
+			LastAliasToggled = Id;
+		}
+		else
+		{
+			Toggle.Add(Id, true);
+		}
+	}
+
+	void CreateButtonPressed()
+	{
+		ClearModel();
+	}
+	void AddCommandConfirmed()
+	{
+		if (string.IsNullOrEmpty(commandModel.CommandName) || string.IsNullOrEmpty(commandModel.Response))
+		{
+			return;
+		}
+		commandsService.AddCommand(channel, commandModel);
+	}
+
+	void EditButtonPressed(int commandId)
+	{
+		LoadModel(commandId);
+	}
+	void EditCommandConfirmed()
+	{
+		if (string.IsNullOrEmpty(commandModel.CommandName))
+		{
+			return;
+		}
+		if (string.IsNullOrEmpty(commandModel.Response))
+		{
+			return;
+		}
+		commandsService.EditCommand(commandModel);
+	}
+
+	void DeleteButtonPressed(int commandId)
+	{
+		LoadModel(commandId);
+	}
+	void DeleteCommandConfirmed(int commandId)
+	{
+		commandsService.DeleteCommand(commandId);
+	}
+
+	void AliasButtonPressed(int commandId)
+	{
+		ToggleAlias(commandId);
+		LoadModel(commandId);
+	}
+	void DeleteAliasPressed(int? aliasId)
+	{
+		if (aliasId.HasValue)
+			aliasesService.DeleteAlias(channel, aliasId.Value);
+	}
+	void CreateAliasPressed()
+	{
+		aliasModel.Alias = string.Empty;
+	}
+	void CreateAliasConfirmed()
+	{
+		if (!string.IsNullOrEmpty(aliasModel.Alias))
+			aliasesService.AddAlias(channel, commandModel.Id, aliasModel.Alias);
+	}
+
+	private void LoadModel(int commandId)
+	{
+		commandModel = commandsService.GetCommand(channel, commandId);
+	}
+	private void ClearModel()
+	{
+		commandModel = commandsService.GetTemplateCommand(channel);
+	}
+}

@@ -1,0 +1,62 @@
+﻿@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Microsoft.AspNetCore.Components
+@using System.Net.Http.Json;
+@inject NavigationManager navigationmanager
+@inject IHttpClientFactory ClientFactory
+@inject HttpClient Http
+
+<a href="https://id.twitch.tv/oauth2/authorize?client_id=nh9fdpt11gna9n0ihq0001bzjwdxxq&redirect_uri=https://localhost:44363&response_type=token">Connect with Twitch</a>
+
+@code {
+	public string userToken = string.Empty;
+	public TwitchResponseContainer? userInfo;
+
+	protected override async Task OnInitializedAsync()
+	{
+		userToken = navigationmanager.Uri;
+		if (userToken.Contains("access_token="))
+		{
+			int startIndex = userToken.IndexOf("access_token=");
+			int endIndex = userToken.IndexOf("&scope=");
+			if (startIndex != -1 && endIndex != -1)
+			{
+				userToken = userToken.Substring(startIndex + 13, endIndex - startIndex - 13);
+
+				var request = new HttpRequestMessage(HttpMethod.Get, "https://api.twitch.tv/helix/users");
+				request.Headers.Add("Client-ID", "nh9fdpt11gna9n0ihq0001bzjwdxxq");
+				request.Headers.Add("Authorization", $"Bearer {userToken}");
+
+				var client = ClientFactory.CreateClient();
+
+				var response = await client.SendAsync(request);
+
+				if (response.IsSuccessStatusCode)
+				{
+					var responseStream = await response.Content.ReadAsStringAsync();
+					if (!string.IsNullOrEmpty(responseStream))
+						userInfo = JsonSerializer.Deserialize<TwitchResponseContainer>(responseStream);
+				}
+			}
+			else { userToken = null; }
+		}
+	}
+
+	public class TwitchResponseContainer
+	{
+		public List<TwitchResponse> data { get; set; }
+	}
+	public class TwitchResponse
+	{
+		public string id { get; set; }
+		public string login { get; set; }
+		public string display_name { get; set; }
+		public string type { get; set; }
+		public string broadcaster_type { get; set; }
+		public string description { get; set; }
+		public string profile_image_url { get; set; }
+		public string offline_image_url { get; set; }
+		public int view_count { get; set; }
+		public DateTime created_at { get; set; }
+	}
+}

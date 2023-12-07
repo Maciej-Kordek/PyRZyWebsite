@@ -1,0 +1,166 @@
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    margin-bottom: 60px;
+    background-color: #ddd;
+}
+
+.input{
+    margin-bottom: 3px;
+}
+
+.CommandsWindow {
+    width: 80%;
+    height: auto;
+    padding: 3px;
+    border: 3px solid #555;
+    border-radius: 16px;
+    margin: auto;
+    text-align: center;
+}
+
+.CommandsTable {
+    width: 100%;
+}
+
+.Pager {
+    width: 100%;
+    display: flex;
+}
+
+.PagerButtons {
+    width: 95%;
+    margin: auto;
+    padding: 3px;
+    display: block;
+}
+
+.DisplayButtons {
+    display: inline-block;
+    float: left;
+}
+
+.PageButtons {
+    display: inline-block;
+    float: right;
+}
+
+.HeaderCommand {
+    margin-bottom: 4px;
+    background-color: #888;
+    clear: none;
+}
+
+.EntryContainer {
+    display: flex
+}
+
+.CommandEntry {
+    width: 100%;
+    display: block;
+}
+
+.Command {
+    width: 100%;
+    margin-bottom: 2px;
+    background-color: #aaa;
+}
+
+.CmdNames {
+    width: 20%;
+    border-right: 1px solid #555;
+}
+
+.AliasToggle {
+    width: 20%;
+}
+
+.Name {
+    width: 80%;
+}
+
+.Response {
+    width: 70%;
+    border-left: 1px solid #555;
+    border-right: 1px solid #555;
+}
+
+.CommandButtons {
+    width: 10%;
+    border-left: 1px solid #555;
+}
+
+.CreateButton {
+}
+
+.EditButton {
+}
+
+.DeleteButton {
+}
+
+.AliasesTable {
+    width: 25%;
+    margin-bottom: 4px;
+    text-align: center;
+    display: block;
+    float: left;
+}
+
+.HeaderAlias {
+    margin-bottom: 4px;
+    background-color: #888;
+}
+
+.Alias {
+    margin-bottom: 2px;
+    background-color: #aaa;
+}
+
+.AliasName {
+    width: 80.75%;
+    border-right: 1px solid #555;
+}
+
+.AliasButtons {
+    width: 19.25%;
+    border-left: 1px solid #555;
+}
+
+.Row {
+    display: flex;
+    border: 2px solid #555;
+    border-radius: 5px;
+    align-items: stretch;
+    text-align: center;
+}
+
+.Cell {
+    display: flex;
+}
+
+.Data {
+    padding: 3px;
+    margin: auto;
+    display: block;
+    align-items: center;
+    word-wrap: break-word;
+    word-break: break-word;
+}

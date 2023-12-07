@@ -1,0 +1,18 @@
+﻿@page
+@using WebProject.Components
+@model IndexModel
+@{
+	ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+
+</div>
+
+<div class="CommandsWindow">
+	@(await Html.RenderComponentAsync<TwitchLogin>(RenderMode.ServerPrerendered))
+	@(await Html.RenderComponentAsync<CommandList>(RenderMode.ServerPrerendered))
+</div>
+
+
+<script src="_framework/blazor.server.js"></script>
