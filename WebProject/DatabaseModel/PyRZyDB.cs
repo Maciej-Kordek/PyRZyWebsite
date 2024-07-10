@@ -28,6 +28,7 @@ namespace WebProject.Database
 				.HasPrincipalKey(x => x.TwitchId);
 
 			modelBuilder.Entity<ChannelCommands>()
+				.ToTable(x => x.HasTrigger("OnIn/Up"))
 				.HasMany(x => x.Aliases)
 				.WithOne(x => x.ChannelCommands)
 				.HasForeignKey(x => x.CommandId)

@@ -10,7 +10,15 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddTransient<CommandsService>();
 builder.Services.AddTransient<AliasesService>();
 builder.Services.AddTransient<PagerService>();
+builder.Services.AddTransient<TwitchMessageService>();
 builder.Services.AddHttpClient();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromSeconds(10);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
 var app = builder.Build();
 
@@ -28,6 +36,8 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
+
+app.UseSession();
 
 app.MapRazorPages();
 

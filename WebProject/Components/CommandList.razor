@@ -1,12 +1,14 @@
-﻿<h3>CommandList</h3>
-
-@using Microsoft.AspNetCore.Components.Web
+﻿@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.Forms
 @using WebProject.Database
 @using WebProject.Services
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+@inject ProtectedSessionStorage ProtectedSessionStore
 @inject CommandsService commandsService
 @inject AliasesService aliasesService
 @inject PagerService pagerservice
+
+<h3>CommandList</h3>
 
 <div class="CommandsTable">
 	<div class="Pager">
@@ -100,7 +102,7 @@
 								</div>
 								<div class="Cell AliasButtons">
 									<div class="Data">
-										<button @onclick="(e => DeleteAliasPressed(Alias.Id))" class=" DeleteButton btn btn-danger">-</button>
+										<button @onclick="(e => DeleteAliasPressed(Alias.Id))" class="DeleteButton btn btn-danger">-</button>
 									</div>
 								</div>
 							</div>
@@ -128,7 +130,7 @@
 					<EditForm Model="@commandModel" OnSubmit="@AddCommandConfirmed">
 						<div class="input">
 							Command Name:	<br />
-							<InputText style="width: 60%;" @bind-Value="commandModel.CommandName" />
+							<InputText style="width: 60%;" @bind-Value="@commandModel.CommandName" />
 						</div>
 						<div class="input">
 							Response: <br />
@@ -137,7 +139,7 @@
 						<div class="input" style="display: inline-flex;">
 							<div class="input" style="padding-right: 2px;">
 								Cooldown: <br />
-								<InputNumber placeholder="3" @bind-Value="commandModel.Cooldown" />
+								<InputNumber type="number" placeholder="3" @bind-Value="commandModel.Cooldown" />
 							</div>
 							<div class="input" style="padding-left: 2px;">
 								Active for: <br />
@@ -288,6 +290,7 @@
 
 @code {
 	public string channel = "pyrzybot";
+	public string commandNameError = string.Empty;
 
 	public PagerService pager;
 
@@ -303,6 +306,7 @@
 		commandModel ??= new();
 		aliasModel ??= new();
 		pager = new PagerService(25, commandsService.GetCommandsCount(channel));
+		OnLogin();
 	}
 
 	private void InitAliases()
@@ -330,6 +334,18 @@
 	void CreateButtonPressed()
 	{
 		ClearModel();
+	}
+	void CheckNameInput(string commandName)
+	{
+		commandName = commandName.ToLower();
+		if (commandsService.GetCommandByName(channel, commandName) != null)
+		{
+			commandNameError = "Command already exists";
+		}
+		else
+		{
+			commandNameError = string.Empty;
+		}
 	}
 	void AddCommandConfirmed()
 	{
@@ -393,5 +409,20 @@
 	private void ClearModel()
 	{
 		commandModel = commandsService.GetTemplateCommand(channel);
+	}
+
+	public async Task OnLogin()
+	{//This is awful please don't kill me
+		var sessionUser = await ProtectedSessionStore.GetAsync<string>("userName");
+		channel = sessionUser.Success ? sessionUser.Value : "pyrzybot";
+
+		while (!sessionUser.Success)
+		{
+			Thread.Sleep(100);
+			sessionUser = await ProtectedSessionStore.GetAsync<string>("userName");
+			channel = sessionUser.Success ? sessionUser.Value : "pyrzybot";
+		}
+
+		StateHasChanged();
 	}
 }

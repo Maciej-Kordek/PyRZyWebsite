@@ -42,6 +42,14 @@ namespace WebProject.Services
 				return Command;
 			}
 		}
+		public ChannelCommands GetCommandByName(string channel, string commandName)
+		{
+			using (var context = new PyRZyDB())
+			{
+				var Command = context.ChannelCommands.FirstOrDefault(x => x.Channel == channel && x.CommandName == commandName);
+				return Command;
+			}
+		}
 		public ChannelCommands GetTemplateCommand(string channel)
 		{
 			return new ChannelCommands("", "", channel);

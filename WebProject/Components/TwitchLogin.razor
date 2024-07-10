@@ -1,45 +1,113 @@
 ﻿@using System.Text.Json
 @using System.Text.Json.Serialization
 @using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Json;
+@using System.Web;
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+@using WebProject.Services;
+@using WebProject.Database
+@inject TwitchMessageService MessageService
+@inject ProtectedSessionStorage ProtectedSessionStore
 @inject NavigationManager navigationmanager
 @inject IHttpClientFactory ClientFactory
 @inject HttpClient Http
 
-<a href="https://id.twitch.tv/oauth2/authorize?client_id=nh9fdpt11gna9n0ihq0001bzjwdxxq&redirect_uri=https://localhost:44363&response_type=token">Connect with Twitch</a>
+@{
+	if (!loggedIn)
+	{
+		<a href="https://id.twitch.tv/oauth2/authorize?client_id=nh9fdpt11gna9n0ihq0001bzjwdxxq&redirect_uri=https://localhost:44363&response_type=token">
+			<button class="btn btn-success">Login with Twitch</button>
+		</a>
+	}
+	else if (!chatConnected)
+	{
+		<div>
+			<button @onclick="(e => JoinChannel(user))" class="btn btn-success">Join Channel</button>
+		</div>
+	}
+	else
+	{
+		<h5>Logged in as: @user</h5>
+	}
+}
 
 @code {
-	public string userToken = string.Empty;
 	public TwitchResponseContainer? userInfo;
+	public string user;
+
+	public bool loggedIn = false;
+	public bool chatConnected = false;
 
 	protected override async Task OnInitializedAsync()
 	{
-		userToken = navigationmanager.Uri;
-		if (userToken.Contains("access_token="))
+		var Uri = new Uri($"{navigationmanager.Uri.Replace('#', '?')}");
+		var userToken = HttpUtility.ParseQueryString(Uri.Query).Get("access_token");
+
+		if (userToken != null)
 		{
-			int startIndex = userToken.IndexOf("access_token=");
-			int endIndex = userToken.IndexOf("&scope=");
-			if (startIndex != -1 && endIndex != -1)
+			var request = new HttpRequestMessage(HttpMethod.Get, "https://api.twitch.tv/helix/users");
+			request.Headers.Add("Client-ID", "nh9fdpt11gna9n0ihq0001bzjwdxxq");
+			request.Headers.Add("Authorization", $"Bearer {userToken}");
+
+			var client = ClientFactory.CreateClient();
+
+			var response = await client.SendAsync(request);
+
+			if (response.IsSuccessStatusCode)
 			{
-				userToken = userToken.Substring(startIndex + 13, endIndex - startIndex - 13);
-
-				var request = new HttpRequestMessage(HttpMethod.Get, "https://api.twitch.tv/helix/users");
-				request.Headers.Add("Client-ID", "nh9fdpt11gna9n0ihq0001bzjwdxxq");
-				request.Headers.Add("Authorization", $"Bearer {userToken}");
-
-				var client = ClientFactory.CreateClient();
-
-				var response = await client.SendAsync(request);
-
-				if (response.IsSuccessStatusCode)
+				var responseStream = await response.Content.ReadAsStringAsync();
+				if (!string.IsNullOrEmpty(responseStream))
 				{
-					var responseStream = await response.Content.ReadAsStringAsync();
-					if (!string.IsNullOrEmpty(responseStream))
-						userInfo = JsonSerializer.Deserialize<TwitchResponseContainer>(responseStream);
+					userInfo = JsonSerializer.Deserialize<TwitchResponseContainer>(responseStream);
+					await ProtectedSessionStore.SetAsync("userId", userInfo.data[0].id);
+					await ProtectedSessionStore.SetAsync("userName", userInfo.data[0].login);
+					await ProtectedSessionStore.SetAsync("displayName", userInfo.data[0].display_name);
+					await ProtectedSessionStore.SetAsync("userToken", userToken);
+
+					using (var context = new PyRZyDB())
+					{
+						if (context.GlobalUsers.FirstOrDefault(x => x.TwitchId == Int32.Parse(userInfo.data[0].id)) == null)
+						{
+							var user = new GlobalUsers(Int32.Parse(userInfo.data[0].id), userInfo.data[0].display_name);
+							context.Add(user);
+							context.SaveChanges();
+						}
+
+						if (context.ChannelInfo.FirstOrDefault(x => x.ChannelId == userInfo.data[0].id) != null)
+						{
+							chatConnected = true;
+						}
+					}
+					loggedIn = true;
 				}
 			}
-			else { userToken = null; }
 		}
+	}
+
+	protected override void OnAfterRender(bool firstRender)
+	{
+		if (!firstRender)
+			OnLogin();
+	}
+
+	async void OnLogin()
+	{
+		var sessionUser = await ProtectedSessionStore.GetAsync<string>("displayName");
+		if (sessionUser.Success)
+		{
+			user = sessionUser.Value;
+		}
+
+		StateHasChanged();
+	}
+
+	async void JoinChannel(string channel)
+	{
+		if (!loggedIn)
+			return;
+		await MessageService.SendMessage("pyrzybot", $"!join {channel}");
 	}
 
 	public class TwitchResponseContainer

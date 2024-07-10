@@ -10,7 +10,6 @@
 </div>
 
 <div class="CommandsWindow">
-	@(await Html.RenderComponentAsync<TwitchLogin>(RenderMode.ServerPrerendered))
 	@(await Html.RenderComponentAsync<CommandList>(RenderMode.ServerPrerendered))
 </div>
 
